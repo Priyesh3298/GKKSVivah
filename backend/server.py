@@ -45,6 +45,21 @@ if SUPABASE_URL and SUPABASE_SERVICE_KEY:
 
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "gkks-admin-2026")
 
+# ─── Auth Config ──────────────────────────────────────────────
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
+MSG91_AUTH_KEY = os.environ.get("MSG91_AUTH_KEY", "")
+MSG91_TEMPLATE_ID = os.environ.get("MSG91_TEMPLATE_ID", "")
+SERVER_OTP_SECRET = os.environ.get("SERVER_OTP_SECRET", "gkks-otp-secret-2026")
+
+# Secondary Supabase client (anon key) — used for user sign-in
+supabase_anon: Optional[SupabaseClient] = None
+if SUPABASE_URL and SUPABASE_ANON_KEY:
+    supabase_anon = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+# In-memory OTP store: { phone: { otp, expires_at, attempts } }
+OTP_STORE: Dict[str, Dict] = {}
+
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
