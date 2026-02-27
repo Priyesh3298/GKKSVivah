@@ -141,8 +141,8 @@ def try_management_api_sql():
 
 
 # ─── 4. Verify tables exist ──────────────────────────────────
-def verify_tables(supabase: Client):
-    """Check which tables exist using PostgREST (service role key)."""
+def verify_tables():
+    """Check which tables exist via direct PostgREST HTTP calls."""
     print(c("cyan", "\n▶  Verifying tables..."))
     tables = [
         "profiles", "users", "parent_profiles", "volunteer_applications",
@@ -150,19 +150,25 @@ def verify_tables(supabase: Client):
         "reports", "admin_log",
     ]
     all_ok = True
-    for table in tables:
-        try:
-            supabase.table(table).select("id").limit(1).execute()
-            print(c("green", f"  ✓  {table}"))
-        except Exception as e:
-            msg = str(e)
-            # PostgREST returns 200 even for empty tables; 404 means table doesn't exist
-            if "relation" in msg.lower() or "does not exist" in msg.lower() or "404" in msg:
-                print(c("red",    f"  ✗  {table}  ← NOT FOUND (run SQL migration first)"))
-                all_ok = False
-            else:
-                # Any other response means table exists (could be RLS-blocked select)
+    with httpx.Client(timeout=15) as client:
+        for table in tables:
+            r = client.get(
+                f"{SUPABASE_URL}/rest/v1/{table}?select=id&limit=1",
+                headers={
+                    "apikey": SUPABASE_SERVICE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                },
+            )
+            if r.status_code == 200:
                 print(c("green", f"  ✓  {table}"))
+            else:
+                body = r.text[:100]
+                if "PGRST205" in body or "not exist" in body or r.status_code == 404:
+                    print(c("red", f"  ✗  {table}  ← NOT FOUND (run SQL migration first)"))
+                    all_ok = False
+                else:
+                    print(c("yellow", f"  ?  {table}  (status {r.status_code}: {body[:60]})"))
+                    all_ok = False
     return all_ok
 
 
