@@ -70,6 +70,19 @@ interests, shortlist, messages, reports, admin_log
 - Cloudflare Turnstile site key in frontend/.env; secret key in backend/.env
 - MSG91 placeholder: swap `MSG91_AUTH_KEY` in backend/.env for real key to go live
 
+### Step 4 — Role Selection + Step 5 — Profile Claiming (Feb 2026)
+- [x] `PATCH /api/auth/set-role`: Authenticated endpoint sets candidate/parent role
+- [x] `GET /api/auth/me`: Returns current user's role, status, profile_id
+- [x] `GET /api/profiles/search?q=...`: Fuzzy search on unclaimed profiles (ILIKE on full_name + father_name)
+- [x] `POST /api/profiles/claim`: Uploads selfie to admin-verification storage, sets profile status=pending_approval, sets users.profile_id
+- [x] `app/(onboarding)/role-select.tsx`: Two-card role picker (Candidate / Parent)
+- [x] `app/(onboarding)/claim-profile.tsx`: Debounced search with result cards
+- [x] `app/(onboarding)/claim-selfie.tsx`: Camera (mobile) / file picker (web), base64 upload
+- [x] `otp.tsx` updated: new users → role-select, returning users → home
+- [x] `index.tsx` updated: auth guard + role check + candidate profile claim prompt
+- [x] 18/18 backend tests + all critical E2E frontend flows pass
+- Test profiles seeded: Raj Patel (Surat), Priya Shah (Ahmedabad), Meera Desai (Vadodara)
+
 
 ### Step 2 — Admin CSV Import Tool (Feb 2026)
 - [x] Backend: `POST /api/admin/csv-preview` — parses CSV, auto-detects all 27 field mappings, returns preview rows
