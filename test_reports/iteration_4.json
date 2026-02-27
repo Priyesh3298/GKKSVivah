@@ -1,0 +1,68 @@
+{
+  "summary": "GKKS Vivah Step 6 — Browse Profiles. Backend: 21/21 tests passed (100%). Frontend: All 12 critical flows verified. Core browse functionality works correctly — 8 profiles load, all 4 filter types functional. ONE CRITICAL UI BUG found: Search button (for Age filter) is completely off-screen at x=639px on 375px mobile viewport. Age filter cannot be triggered via UI tap. Metro bundler cache served stale bundle (Browse Profiles button missing) until Expo was restarted — fixed by supervisor restart. MOCKED: MSG91 WhatsApp OTP, Cloudflare Turnstile (WEB_BYPASS).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "browse.tsx — filter row",
+        "issue": "CRITICAL: Search button is rendered off-screen (x=639px on 375px viewport). The filter row has 4 items: City(flex:2), Age min(flex:1), Age max(flex:1), Search button(no flex). On Expo Web, React Native flex maps to CSS flex which uses 'flex: 1 1 auto' (auto basis), causing City/Age inputs to overflow and push Search button off-screen. Age range filter CANNOT be applied by tapping Search on web. City filter works via Enter key (onSubmitEditing). Age filter accessible via JS but not via UI.",
+        "testID": "N/A — no testID on Search button or filter inputs",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "browse.tsx — Metro cache",
+        "issue": "During initial testing, Browse Profiles button was missing from home screen because Metro bundler served a cached bundle from before Step 6 changes. Fixed by restarting Expo via 'sudo supervisorctl restart expo'. This forced a fresh 842-module bundle. Not a code bug but a deployment/cache awareness issue.",
+        "testID": "N/A",
+        "priority": "LOW (ops)"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Browse screen — filter row",
+        "issues": [
+          "Filter row layout overflow on mobile web: City + Age min + Age max + Search button do not fit in 343px (375px - 32px padding). Search button at x=639px is 264px off-screen. Fix: use two rows or flex-wrap, OR add 'flex: 0, minWidth: 60' to Search button, OR replace with icon button. Note: on native React Native, flex:N uses flexBasis:0 which would fit correctly — this is a web-specific rendering difference.",
+          "Missing testID attributes on all filter components: city input, age min input, age max input, search button, gender pills, profile cards, back button, count text. Makes automated testing rely on placeholder text and text content selectors only."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "browse.tsx — filter row",
+        "issue": "In React Native Web, flex shorthand maps to CSS 'flex: N 1 auto' (not 'flex: N 1 0px' like native). This causes flex children to use their natural content width as basis, potentially overflowing the container. City input (flex:2) with text + padding may grow larger than expected, pushing Search button off-screen. Age min/max inputs with flex:1 and no minWidth defined."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_browse.py",
+    "/app/test_reports/pytest/pytest_browse_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix Search button off-screen issue in browse.tsx filter row. Options: (a) Use two rows — gender pills row + City input row + separate age row with Search button, (b) Add 'flex: 0, minWidth: 60' to searchBtn style, (c) Replace text 'Search' button with icon. Root cause: React Native Web renders flex differently from native — use flexShrink:0 on non-flex children.",
+    "LOW: Add testID attributes to browse.tsx interactive elements: city-input, age-min-input, age-max-input, search-button, all-pill, male-pill, female-pill, profile-card-{id}, count-text, back-button.",
+    "LOW: Run 'sudo supervisorctl restart expo' after bundle changes to ensure fresh Metro bundle is served."
+  ],
+  "critical_code_review_comments": [
+    "browse.tsx filter row: flexDirection:'row' with 4 items (flex:2 + flex:1 + flex:1 + no-flex Search) overflows on web. React Native Web uses CSS flex with auto basis vs native's 0 basis. Fix: either wrap to two rows or explicitly set width/flex on the Search button.",
+    "browse.tsx: fetchProfiles is called on mount with fetchProfiles('All') — correctly loads all 8 profiles. Gender pills call fetchProfiles(g) directly. But Search button (which handles city + age range) is unreachable on mobile web viewport.",
+    "browse.tsx: age inputs (Age min, Age max) have no onSubmitEditing handler. Users cannot apply age filter via keyboard on these inputs. Only way is via Search button (which is off-screen on web). Recommend adding onSubmitEditing to age inputs or using a different UX pattern.",
+    "browse.tsx: No testID attributes on any interactive elements. Full testing requires text-based selectors or JS evaluation.",
+    "server.py browse_profiles: Queries status IN ('pending_approval', 'claimed') — correctly excludes 'unclaimed'. All 8 seeded profiles are 'pending_approval', confirming they show in browse.",
+    "server.py browse_profiles: Age calculation is correct — uses (today.month, today.day) < (dob.month, dob.day) for birthday-aware age calculation."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_browse.py"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 backend browse tests passed)",
+    "frontend": "85% — All 12 core browse flows verified. Search button unreachable on web (x=639px off-screen) prevents tapping age filter. Workaround: JS click or city Enter key. Gender pills, city Enter, back button all work correctly."
+  },
+  "seed_data_creation": "No new seed data. Used phone +919876543211 (new test user, set to candidate role). 8 browse profiles already seeded by E1: Raj Patel(M,Surat,27), Kavya Joshi(F,Surat,24), Priya Shah(F,Ahmedabad,26), Meera Desai(F,Vadodara,26), Nisha Patel(F,Rajkot,26), Arjun Mehta(M,Mumbai,28), Dev Shah(M,Vadodara,29), Rohan Trivedi(M,Ahmedabad,30) — all status=pending_approval.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Step 6 Browse Profiles tested. Backend 100% pass. Frontend browse screen works. CRITICAL: Search button off-screen (x=639 on 375px). Age filter inaccessible via UI. Use phone +919876543211 (candidate, no profile) for testing. OTP from: grep 'OTP for +919876543211' /var/log/supervisor/backend.err.log | tail -1. After any code changes, restart Expo: sudo supervisorctl restart expo. All 8 profiles are pending_approval in Supabase — do NOT change their status.",
+  "rca_of_issue": "ROOT CAUSE of Search button off-screen: browse.tsx filter row uses flexDirection:'row' with: City(flex:2), Age_min(flex:1), Age_max(flex:1), Search(no flex). In React Native native, flex:N means flexGrow:N, flexShrink:1, flexBasis:0. In React Native Web (CSS), flex:N maps to flexGrow:N, flexShrink:1, flexBasis:auto. With auto basis, City input takes its content width FIRST (~80-100px minimum), then grows. This causes the row total to exceed container width, pushing the Search button past x=375px. MITIGATION: (1) Add flex:0 to searchBtn OR (2) Restructure the filter row into separate lines OR (3) Add flexShrink:0 to searchBtn so it's not compressed off-screen. REPRODUCTION: Load browse screen in browser at 375px viewport, inspect Search button getBoundingClientRect().x — will be ~639px."
+}
