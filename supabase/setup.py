@@ -218,7 +218,7 @@ if __name__ == "__main__":
     bucket_results = create_storage_buckets(supabase)
 
     # 5. Verify tables
-    tables_ok = verify_tables(supabase)
+    tables_ok = verify_tables()
 
     # 6. Summary
     print(c("cyan", "\n─── Summary ─────────────────────────────────────────────"))
