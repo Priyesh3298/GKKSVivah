@@ -7,7 +7,7 @@ const strings = {
   phoneLabel:      { en: 'WhatsApp Number',                  gu: 'WhatsApp નંબર' },
   phonePlaceholder:{ en: '98765 43210',                     gu: '98765 43210' },
   captchaPrompt:   { en: 'Complete security check',          gu: 'સુરક્ષા ચકાસણી પૂર્ણ કરો' },
-  captchaDone:     { en: 'Security check passed ✓',          gu: 'સુરક્ષા ચકાસણી પૂર્ણ ✓' },
+  captchaDone:     { en: 'Security check passed',            gu: 'સુરક્ષા ચકાસણી પૂર્ણ' },
   sendOtp:         { en: 'Send OTP',                         gu: 'OTP મોકલો' },
   sending:         { en: 'Sending…',                         gu: 'મોકલી રહ્યા છીએ…' },
   otpTitle:        { en: 'Enter OTP',                        gu: 'OTP દાખલ કરો' },
