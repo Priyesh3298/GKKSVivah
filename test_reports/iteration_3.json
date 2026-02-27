@@ -1,0 +1,75 @@
+{
+  "summary": "GKKS Vivah Steps 4 & 5 — Role Selection + Profile Claiming. Full E2E tested. All 18 backend tests passed. All frontend flows verified: new user → role-select, candidate → claim-profile → search → claim-selfie → submit → home badge, parent → home badge, returning user → home directly. Critical bug found and fixed in index.tsx (duplicate export). MOCKED: MSG91 WhatsApp OTP, Cloudflare Turnstile (WEB_BYPASS), expo-image-picker on web uses file library picker.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/profiles/search",
+        "issue": "Raj Patel (patel search) returned 0 results after backend tests claimed his profile. Expected behavior (status=pending_approval not returned). Profiles should be reset/re-seeded between test runs.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "index.tsx",
+        "issue": "CRITICAL BUG FIXED: Had two `export default function Index()` declarations (lines 16 and 142) AND two `const styles` declarations. Metro bundler used the second (old Step 3) function, making the home screen show 'Step 3 Complete — Registration ✓' instead of new role-aware content. Fixed by removing duplicate.",
+        "testID": "N/A",
+        "priority": "CRITICAL — FIXED"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "claim-selfie",
+        "issues": [
+          "Profile name is displayed as '\"Priya Shah\"' (with double quotes). This is intentional per the JSX `\"{profile_name}\"` syntax but looks a bit odd in UI. Minor cosmetic feedback."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "role-select.tsx, claim-profile.tsx, claim-selfie.tsx",
+        "issue": "No testID props on any interactive elements (role cards, search input, 'This is me' button, selfie box, 'Submit Claim' button). Makes automated testing rely on text-content selectors only."
+      },
+      {
+        "component": "role-select.tsx",
+        "issue": "descEn for parent role uses Unicode RIGHT SINGLE QUOTATION MARK (U+2019) in `'Looking for my child\u2019s match'`. Not a bug but inconsistent — will mismatch ASCII apostrophe comparisons in tests."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding.py",
+    "/app/test_reports/pytest/pytest_onboarding_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL (FIXED): Remove duplicate export default function Index() from index.tsx — already fixed in this iteration",
+    "LOW: Add testID attributes to role-select cards, claim-profile search input, claim-selfie box, Submit Claim button",
+    "LOW: Add `(onboarding)` Stack.Screen to _layout.tsx for explicit navigation config",
+    "LOW: Re-seed Raj Patel profile back to 'unclaimed' after each test run (or always use fresh phones for testing)",
+    "LOW: Consider using standard ASCII apostrophe in role-select.tsx descEn string"
+  ],
+  "critical_code_review_comments": [
+    "index.tsx: CRITICAL — Two `export default function Index()` definitions in same file. Metro bundler processes last export, showing old Step 3 screen instead of new role-aware home. FIXED in this iteration by removing duplicate function (lines 141-236 removed).",
+    "_layout.tsx: Missing explicit Stack.Screen for `(onboarding)` group. Expo Router auto-discovers it but explicit registration is recommended for predictable navigation behavior.",
+    "role-select.tsx line 25: `descEn` uses Unicode apostrophe U+2019 (\u2019) in 'child\u2019s match'. JavaScript string literal uses single quotes as delimiter — this is valid only because the inner apostrophe is Unicode. Could cause confusion.",
+    "claim_profile.tsx: search debounce is 400ms which is good. Min 2 chars enforced both frontend (query.length < 2) and backend (len(q.strip()) < 2). Consistent.",
+    "server.py set_role/get_me/search_profiles/claim_profile: All synchronous functions (def not async def) calling synchronous Supabase client. This is correct — supabase-py is synchronous and FastAPI handles sync deps in threadpool.",
+    "server.py claim_profile: selfie upload failure is non-fatal (continue even if upload fails). Acceptable design but should at minimum track in admin_log that selfie upload failed.",
+    "server.py: OTP_STORE is in-memory — resets on restart. Acceptable for dev but note for production deployment."
+  ],
+  "updated_files": [
+    "/app/frontend/app/index.tsx",
+    "/app/backend/tests/test_onboarding.py"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 backend tests passed)",
+    "frontend": "95% — all critical flows verified. Minor: Meera Desai name visibility in selfie screen test (strict-mode locator issue in test script, not a real bug)"
+  },
+  "seed_data_creation": "Test users created: +919876500001 (candidate, Patel claimed), +919876500003 (candidate, no profile), +919876500004 (candidate, no profile), +919876500005 (candidate, no profile — Priya Shah navigated but not claimed), +919876500006 (candidate, no profile), +919876500007 (candidate, Meera Desai claimed), +919876500008 (parent). Raj Patel profile (674e6f47) now pending_approval. Meera Desai (44c151f7) now pending_approval.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Steps 4 & 5 fully verified. All backend APIs working (auth/me, set-role, profiles/search, profiles/claim). Full E2E flow verified: Register → OTP → role-select → candidate/parent → claim-profile → claim-selfie → submit → home badge. CRITICAL FIX: index.tsx duplicate export was fixed. Raj Patel and Meera Desai profiles are now pending_approval — need fresh profiles for next test run. Use phones 9876500010+ for new test users. OTP from: grep 'PLACEHOLDER MSG91' /var/log/supervisor/backend.err.log | tail -5",
+  "rca_of_issue": "BUG ROOT CAUSE: index.tsx contained two `export default function Index()` declarations. The first (lines 16-114) implemented the new Steps 4/5 role-aware home screen with candidate badge, profile claim status, etc. The second (lines 141-217, old Step 3 code) had `const styles` conflicts. Metro bundler/TypeScript processed both and the second StyleSheet.create() call would clobber the first, causing `styles.build` to exist but `styles.infoBadge` to not exist (or vice versa). JavaScript/ES6 modules technically don't allow duplicate default exports, but Metro's JS bundler appears to silently accept both declarations at parse time, with behavior depending on bundler version. MITIGATION: Removed duplicate export. Always run `tsc --noEmit` to catch duplicate declarations before committing."
+}
