@@ -1,0 +1,139 @@
+<analysis>
+<original_problem_statement>
+The user wants to build a cross-platform mobile app named GKKS Vivah for a private Gujarati community. It's an invite-only matrimonial service.
+
+**PRODUCT REQUIREMENTS:**
+- **Tech Stack:** React Native/Expo, Supabase (PostgreSQL, Auth, Storage, Realtime), React.js/Tailwind for a separate Admin Web Panel.
+- **Core Flow:** Admins pre-seed candidate profiles via CSV. Users (candidates or parents) register and claim their pre-existing profile.
+- **Authentication:** One-time OTP via MSG91 WhatsApp at registration, followed by Supabase JWT sessions.
+- **User Roles:** admin, city_volunteer, parent, candidate.
+- **Key Features:** Bilingual UI (English/Gujarati), live selfie verification for profile claims, detailed profile system with locked and editable fields, swipe-based discovery UI, two-stage information reveal (blurred photos until mutual interest), real-time chat, and OS-level screenshot prevention.
+- **Admin Panel:** To be built in a separate  folder for CSV imports, user management, and analytics.
+- **Build Process:** The user insists on a strict, step-by-step build order, waiting for a next command after each completed step.
+</original_problem_statement>
+
+**User's preferred language**: English
+
+**what currently exists?**
+The initial project structure has been set up. The Supabase backend is partially configured with credentials in the  files and two storage buckets (, ) have been created.
+
+A complete SQL schema is defined in , but the database tables have **NOT** been created yet.
+
+The Admin CSV Import feature (Step 2) has been built. This includes:
+- A backend API endpoint () in  that can process CSV files for dry-runs (column mapping) and import.
+- A frontend screen at  for admins to upload and preview the CSV file.
+
+**Last working item**:
+- Last item agent was working: The agent just received the user's Next command and was about to start **Step 3: Registration screen** (phone input, MSG91 WhatsApp OTP, Cloudflare Turnstile CAPTCHA).
+- Status: NOT STARTED
+- Agent Testing Done: N/A
+- Which testing method agent to use? both
+- User Testing Done: N/A
+
+**All Pending/In progress Issue list**:
+  - Issue 1: Supabase Database Schema Not Applied (Priority: P0 - CRITICAL BLOCKER)
+
+  Issues Detail:
+  - Issue 1:
+     - **Description**: The database tables defined in  have not been created in the Supabase project. This is a critical blocker for all database-dependent features, including the recently built CSV import tool and all upcoming steps.
+     - **Attempted fixes**: The agent first tried to apply the schema programmatically using the  library, which failed as the library does not support executing raw SQL files. The agent then correctly identified that using the Supabase Management API would require a Personal Access Token (PAT) from the user, which was not feasible.
+     - **Next debug checklist**:
+         1.  **Crucial First Step:** You MUST inform the user that they need to perform a one-time manual action.
+         2.  Instruct the user to navigate to their Supabase project's SQL Editor.
+         3.  Guide them to copy the entire content of the  file and execute it in the editor.
+         4.  After the user confirms completion, you MUST verify that the tables (e.g., , ) now exist before proceeding to any other task. You can verify this by running .
+     - **Why fix this issue and what will be achieved with the fix?**: Fixing this will create the necessary database structure, unblocking all subsequent development steps. The application cannot function or store any data without these tables.
+     - **Status**:  BLOCKED (on user action)
+     - **Is recurring issue?**: N
+     - **Should Test frontend/backend/both after fix?**: backend
+     - **Blocked on other issue**: None
+
+**In progress Task List**:
+  - No in-progress tasks. Step 2 was completed before the last handover.
+
+**Upcoming and Future Tasks**
+- **Upcoming Tasks (Highest Priority after resolving the blocker):**
+  - **P0: Step 3: Registration screen**: Implement the UI and logic for phone number input, MSG91 WhatsApp OTP integration (using placeholders), and Cloudflare Turnstile CAPTCHA (using placeholders).
+
+- **Future Tasks (To be done sequentially after user says next):**
+  - **P1: Step 4**: Role selection screen (Candidate vs Parent).
+  - **P1: Step 5**: Candidate profile claiming flow.
+  - **P1: Step 6**: Parent linking flow.
+  - **P1: Step 7**: City volunteer application flow.
+  - **P2: All subsequent steps** as defined in the  section of the problem statement (Steps 8-25).
+
+**Completed work in this session**
+- **Supabase Setup (Partial - Step 1)**: Configured Supabase credentials and created storage buckets. A SQL file for manual schema application was prepared.
+- **Admin CSV Import Tool (Step 2)**: Fully implemented and tested the backend API and frontend UI for CSV file import. The feature correctly handles dry-runs and fails gracefully on import attempts due to the missing tables.
+- **Minor Fixes**: Resolved minor logging-related issues in  identified by the testing agent.
+
+**Earlier issues found/mentioned but not fixed**
+   - None were missed. The primary pending issue is the database schema creation, which has been identified and is the main blocker.
+
+**Known issue recurrence from previous fork**
+  - N/A
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **Backend:** FastAPI, Pandas for CSV processing.
+- **Frontend:** React Native, Expo, Expo Router for file-based routing.
+- **Database:** Supabase (PostgreSQL). The interaction is planned via .
+- **Development Process:** Strict, sequential build order dictated by the user.
+
+**key DB schema**
+  - The complete schema for 10 tables (, , , etc.) is located in . The core tables are:
+  - : Stores all candidate data, including locked and editable fields.
+  - : Stores app user data, including roles, phone numbers, and links to profiles.
+
+**changes in tech stack**
+  - None.
+
+**All files of reference**
+- : **CRITICAL**. Contains the entire database schema that the user must manually apply.
+- : Updated with the  endpoint.
+- : New file for the admin CSV import UI.
+- : Updated with a link to the admin section.
+- : Script used to create storage buckets.
+- : The living document tracking project progress.
+
+**Areas that need refactoring**:
+- None at this stage.
+
+**key api endpoints**
+- : For CSV dry-run and import operations. Requires a file upload and an  in the header.
+
+**Critical Info for New Agent**
+- **TOP PRIORITY / BLOCKER**: The database is empty. You **MUST** guide the user to manually execute the SQL script located at  in their Supabase dashboard's SQL Editor. Do not proceed with any other task until you have confirmed the tables are created.
+- **Strict User Workflow**: The user requires a strict step-by-step build. Complete one numbered step from the , then use the  tool and wait for the user to type next.
+- **Placeholders**: The project uses placeholder values for MSG91 and Cloudflare Turnstile keys, as requested by the user.
+
+**documents created in this job**
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages**
+- **User Message (Message 87):** Next - User is ready for Step 3. (COMPLETED - acknowledged by agent)
+- **User Message (Message 42):** next - User was ready for Step 2. (COMPLETED)
+
+**Project Health Check:**
+- **Broken**: The data persistence layer is non-functional. The backend database tables do not exist, which prevents most of the application's core logic from working.
+
+**3rd Party Integrations**
+- Supabase (PostgreSQL, Storage, Auth) - Credentials configured.
+- MSG91 WhatsApp OTP - To be implemented with placeholder keys.
+- Cloudflare Turnstile - To be implemented with placeholder keys.
+
+**Testing status**
+  - Testing agent used after significant changes: YES (for Step 2)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: []
+  - Known regressions: []
+
+**Credentials to test flow:**
+- Supabase credentials are in  and .
+- The  for the CSV import endpoint is in .
+
+**What agent forgot to execute**
+The agent did not forget anything. It correctly identified that it could not programmatically execute the SQL schema migration and has correctly teed up the next agent to instruct the user on the necessary manual step.
+</analysis>
