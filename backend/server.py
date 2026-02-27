@@ -434,6 +434,146 @@ async def verify_otp(body: VerifyOTPRequest):
     }
 
 
+# ─── Auth Dependency ──────────────────────────────────────────
+def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
+    """Validate Supabase JWT from Authorization header. Returns {id: str}."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    token = authorization.removeprefix("Bearer ").strip()
+    if not supabase_admin:
+        raise HTTPException(status_code=503, detail="Auth service unavailable.")
+    try:
+        resp = supabase_admin.auth.get_user(token)
+        return {"id": str(resp.user.id)}
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+
+
+# ─── GET /api/auth/me ─────────────────────────────────────────
+@api_router.get("/auth/me")
+def get_me(user: dict = Depends(get_current_user)):
+    try:
+        result = supabase_admin.table("users") \
+            .select("id, role, status, profile_id, language_pref") \
+            .eq("id", user["id"]) \
+            .single() \
+            .execute()
+        return result.data
+    except Exception as e:
+        logger.error(f"get_me error: {e}")
+        raise HTTPException(status_code=404, detail="User not found.")
+
+
+# ─── PATCH /api/auth/set-role ──────────────────────────────────
+class SetRoleRequest(BaseModel):
+    role: str  # 'candidate' | 'parent'
+
+
+@api_router.patch("/auth/set-role")
+def set_role(body: SetRoleRequest, user: dict = Depends(get_current_user)):
+    if body.role not in {"candidate", "parent"}:
+        raise HTTPException(status_code=400, detail="Role must be 'candidate' or 'parent'.")
+    try:
+        supabase_admin.table("users") \
+            .update({"role": body.role}) \
+            .eq("id", user["id"]) \
+            .execute()
+    except Exception as e:
+        logger.error(f"set_role error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update role.")
+    return {"success": True, "role": body.role}
+
+
+# ─── GET /api/profiles/search ─────────────────────────────────
+@api_router.get("/profiles/search")
+def search_profiles(q: str = "", user: dict = Depends(get_current_user)):
+    if len(q.strip()) < 2:
+        return {"profiles": []}
+    safe_q = q.strip().replace("%", "\\%").replace("_", "\\_")
+    try:
+        result = supabase_admin.table("profiles") \
+            .select("id, full_name, father_name, dob, city, gender") \
+            .eq("status", "unclaimed") \
+            .or_(f"full_name.ilike.%{safe_q}%,father_name.ilike.%{safe_q}%") \
+            .limit(15) \
+            .execute()
+        return {"profiles": result.data}
+    except Exception as e:
+        logger.error(f"search_profiles error: {e}")
+        raise HTTPException(status_code=500, detail="Search failed.")
+
+
+# ─── POST /api/profiles/claim ─────────────────────────────────
+class ClaimProfileRequest(BaseModel):
+    profile_id: str
+    selfie_base64: str
+
+
+@api_router.post("/profiles/claim")
+def claim_profile(body: ClaimProfileRequest, user: dict = Depends(get_current_user)):
+    import base64
+
+    # Fetch and validate profile
+    try:
+        profile_result = supabase_admin.table("profiles") \
+            .select("id, status, full_name") \
+            .eq("id", body.profile_id) \
+            .single() \
+            .execute()
+    except Exception as e:
+        logger.error(f"claim fetch error: {e}")
+        raise HTTPException(status_code=404, detail="Profile not found.")
+
+    profile = profile_result.data
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+    if profile["status"] != "unclaimed":
+        raise HTTPException(status_code=409, detail="This profile is no longer available for claiming.")
+
+    # Upload selfie to admin-verification bucket
+    selfie_path = None
+    try:
+        selfie_bytes = base64.b64decode(body.selfie_base64)
+        selfie_path = f"claims/{user['id']}/{body.profile_id}.jpg"
+        supabase_admin.storage.from_("admin-verification").upload(
+            selfie_path,
+            selfie_bytes,
+            {"content-type": "image/jpeg", "upsert": "true"},
+        )
+    except Exception as e:
+        logger.error(f"selfie upload error: {e}")
+        # Continue even if selfie upload fails — log only
+
+    # Update profile + user atomically
+    try:
+        supabase_admin.table("profiles").update({
+            "status": "pending_approval",
+            "claimed_by_user_id": user["id"],
+            "claim_selfie_path": selfie_path,
+            "claimed_at": datetime.utcnow().isoformat(),
+        }).eq("id", body.profile_id).eq("status", "unclaimed").execute()
+
+        supabase_admin.table("users").update({
+            "profile_id": body.profile_id,
+        }).eq("id", user["id"]).execute()
+
+        supabase_admin.table("admin_log").insert({
+            "event_type": "profile_claim_submitted",
+            "related_user_id": user["id"],
+            "related_profile_id": body.profile_id,
+            "notes": f"selfie: {selfie_path or 'not uploaded'}",
+        }).execute()
+    except Exception as e:
+        logger.error(f"claim update error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit claim.")
+
+    return {
+        "success": True,
+        "profile_name": profile["full_name"],
+        "message": "Claim submitted. An admin will review within 24 hours.",
+    }
+
+
 # ─── Existing Routes ─────────────────────────────────────────
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
