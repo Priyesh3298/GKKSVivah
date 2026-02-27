@@ -78,7 +78,7 @@ interests, shortlist, messages, reports, admin_log
 | Step | Feature | Status |
 |------|---------|--------|
 | 1 | Supabase setup — tables, RLS, storage buckets | ✅ Done (SQL pending manual run) |
-| 2 | Admin CSV import tool | ⏳ Pending |
+| 2 | Admin CSV import tool | ✅ Done |
 | 3 | Registration screen — phone input, MSG91 OTP, Cloudflare Turnstile | ⏳ Pending |
 | 4 | Role selection screen | ⏳ Pending |
 | 5 | Candidate profile claiming — fuzzy search, selfie, claim review | ⏳ Pending |
