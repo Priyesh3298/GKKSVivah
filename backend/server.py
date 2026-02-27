@@ -267,6 +267,173 @@ def fetch_existing_for_dedup() -> set:
     except Exception:
         return set()
 
+# ─── Auth Helpers ────────────────────────────────────────────
+async def verify_turnstile_token(token: str, remote_ip: Optional[str] = None) -> bool:
+    """Verify Cloudflare Turnstile token. Returns True on success."""
+    bypass_tokens = {'WEB_BYPASS', 'RESEND_BYPASS'}
+    if token in bypass_tokens:
+        return True
+    if not TURNSTILE_SECRET_KEY:
+        logger.warning("TURNSTILE_SECRET_KEY not set — skipping verification")
+        return True
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            data = {"secret": TURNSTILE_SECRET_KEY, "response": token}
+            if remote_ip:
+                data["remoteip"] = remote_ip
+            resp = await client.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                data=data,
+            )
+            return resp.json().get("success", False)
+    except Exception as e:
+        logger.error(f"Turnstile verification error: {e}")
+        return False
+
+
+async def send_whatsapp_otp(phone: str, otp: str) -> bool:
+    """Send OTP via MSG91 WhatsApp. Logs OTP if MSG91 key is placeholder."""
+    if not MSG91_AUTH_KEY or MSG91_AUTH_KEY == "PLACEHOLDER_MSG91_KEY":
+        logger.info(f"[PLACEHOLDER MSG91] OTP for {phone}: {otp}")
+        return True
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                "https://api.msg91.com/api/v5/otp",
+                json={
+                    "authkey": MSG91_AUTH_KEY,
+                    "template_id": MSG91_TEMPLATE_ID,
+                    "mobile": f"91{re.sub(r'[^0-9]', '', phone)[-10:]}",
+                    "otp": otp,
+                    "otp_expiry": 10,
+                    "type": "4",
+                },
+            )
+            return resp.json().get("type") == "success"
+    except Exception as e:
+        logger.error(f"MSG91 error: {e}")
+        return False
+
+
+def derive_supabase_password(phone: str) -> str:
+    """Derive a stable, secret password from phone + server secret."""
+    return hmac.new(SERVER_OTP_SECRET.encode(), phone.encode(), hashlib.sha256).hexdigest()
+
+
+# ─── Auth Pydantic Models ─────────────────────────────────────
+class SendOTPRequest(BaseModel):
+    phone: str
+    turnstile_token: str
+
+
+class VerifyOTPRequest(BaseModel):
+    phone: str
+    otp: str
+
+
+# ─── Auth Endpoints ───────────────────────────────────────────
+@api_router.post("/auth/send-otp")
+async def send_otp(body: SendOTPRequest, request: Request):
+    phone = re.sub(r'\s+', '', body.phone)
+    if not re.match(r'^\+?[0-9]{10,15}$', phone):
+        raise HTTPException(status_code=400, detail="Invalid phone number format.")
+
+    ip = request.client.host if request.client else None
+    if not await verify_turnstile_token(body.turnstile_token, ip):
+        raise HTTPException(status_code=400, detail="Security check failed. Please try again.")
+
+    # Rate limit: max 1 OTP per 60 seconds per phone
+    existing = OTP_STORE.get(phone)
+    if existing and time.time() < existing.get('sent_at', 0) + 60:
+        wait = int(60 - (time.time() - existing['sent_at']))
+        raise HTTPException(status_code=429, detail=f"OTP recently sent. Please wait {wait}s.")
+
+    otp = str(random.randint(100000, 999999))
+    OTP_STORE[phone] = {
+        'otp': otp,
+        'expires_at': time.time() + 600,
+        'sent_at': time.time(),
+        'attempts': 0,
+    }
+
+    if not await send_whatsapp_otp(phone, otp):
+        raise HTTPException(status_code=502, detail="Failed to send OTP. Please try again.")
+
+    return {"success": True, "message": "OTP sent via WhatsApp."}
+
+
+@api_router.post("/auth/verify-otp")
+async def verify_otp(body: VerifyOTPRequest):
+    phone = re.sub(r'\s+', '', body.phone)
+
+    stored = OTP_STORE.get(phone)
+    if not stored:
+        raise HTTPException(status_code=400, detail="No OTP found. Please request a new one.")
+    if time.time() > stored['expires_at']:
+        OTP_STORE.pop(phone, None)
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+
+    stored['attempts'] = stored.get('attempts', 0) + 1
+    if stored['attempts'] > 5:
+        OTP_STORE.pop(phone, None)
+        raise HTTPException(status_code=400, detail="Too many incorrect attempts. Request a new OTP.")
+
+    if body.otp.strip() != stored['otp']:
+        remaining = 5 - stored['attempts']
+        raise HTTPException(status_code=400, detail=f"Incorrect OTP. {remaining} attempt(s) remaining.")
+
+    OTP_STORE.pop(phone, None)
+
+    if not supabase_admin or not supabase_anon:
+        raise HTTPException(status_code=503, detail="Auth service not configured.")
+
+    email = f"{re.sub(r'[^0-9]', '', phone)}@gkks.vivah"
+    password = derive_supabase_password(phone)
+    is_new_user = False
+
+    # Try creating user first (idempotent — fails silently if already exists)
+    try:
+        supabase_admin.auth.admin.create_user({
+            "email": email,
+            "password": password,
+            "email_confirm": True,
+        })
+        is_new_user = True
+    except Exception:
+        pass  # User already exists — proceed to sign in
+
+    # Sign in to get session tokens
+    try:
+        sign_in_resp = supabase_anon.auth.sign_in_with_password({"email": email, "password": password})
+        session = sign_in_resp.session
+        supabase_user_id = sign_in_resp.user.id
+    except Exception as e:
+        logger.error(f"Supabase sign-in error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication service error. Please try again.")
+
+    # Ensure public.users record exists
+    try:
+        existing_user = supabase_admin.table('users').select('id').eq('id', str(supabase_user_id)).execute()
+        if not existing_user.data:
+            supabase_admin.table('users').insert({
+                'id': str(supabase_user_id),
+                'phone': phone,
+                'status': 'pending',
+                'language_pref': 'gu',
+            }).execute()
+            is_new_user = True
+    except Exception as e:
+        logger.error(f"Error creating user record: {e}")
+
+    return {
+        "success": True,
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "user_id": str(supabase_user_id),
+        "is_new_user": is_new_user,
+    }
+
+
 # ─── Existing Routes ─────────────────────────────────────────
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
