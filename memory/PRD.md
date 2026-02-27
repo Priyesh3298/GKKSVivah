@@ -55,6 +55,21 @@ interests, shortlist, messages, reports, admin_log
 - [x] /app/supabase/README.md with full setup instructions
 - [x] Backend .env updated with SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - [ ] SQL migration PENDING manual execution in Supabase SQL Editor
+- [x] SQL migration manually executed in Supabase SQL Editor — all 10 tables created ✅
+
+### Step 3 — Registration Screen (Feb 2026)
+- [x] `POST /api/auth/send-otp`: Cloudflare Turnstile verification + MSG91 WhatsApp OTP (placeholder; OTP logged to console)
+- [x] `POST /api/auth/verify-otp`: OTP verification → Supabase user create/sign-in → JWT session returned → `public.users` record created
+- [x] `frontend/app/(auth)/register.tsx`: Phone input (+91 India), EN/GU language toggle, Turnstile CAPTCHA (WebView on mobile, tap-bypass on web)
+- [x] `frontend/app/(auth)/otp.tsx`: 6-cell OTP input (auto-advance, backspace-back), 60s resend cooldown, verify button
+- [x] `frontend/lib/supabase.ts`: SSR-safe Supabase client (no-op storage in Node.js SSR context)
+- [x] `frontend/lib/i18n.ts`: Bilingual string dictionary (EN/GU)
+- [x] `frontend/app/_layout.tsx`: Root Stack layout (Expo Router)
+- [x] `frontend/app/index.tsx`: Auth guard → redirects to register if no Supabase session
+- [x] 12/12 backend tests pass, 11/11 frontend tests pass
+- Cloudflare Turnstile site key in frontend/.env; secret key in backend/.env
+- MSG91 placeholder: swap `MSG91_AUTH_KEY` in backend/.env for real key to go live
+
 
 ### Step 2 — Admin CSV Import Tool (Feb 2026)
 - [x] Backend: `POST /api/admin/csv-preview` — parses CSV, auto-detects all 27 field mappings, returns preview rows
