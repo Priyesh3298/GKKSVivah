@@ -484,7 +484,7 @@ async def csv_preview(
         "preview": preview_data,
         "total_rows": len(df),
         "missing_required": missing_required,
-        "profile_fields": [{"value": v, "label": l} for v, l in PROFILE_FIELDS],
+        "profile_fields": [{"value": v, "label": lbl} for v, lbl in PROFILE_FIELDS],
     }
 
 # ─── CSV Import: Execute ──────────────────────────────────────
