@@ -68,6 +68,14 @@ export default function Index() {
         <Text style={styles.title}>🕉 GKKS Vivah</Text>
         <Text style={styles.subtitle}>ગુજરાતી સમુદાય મૅટ્રિમૉનિઅલ</Text>
 
+        {/* Browse Profiles */}
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: '#92400E', marginBottom: 10 }]}
+          onPress={() => router.push('/browse')}
+        >
+          <Text style={styles.actionBtnTxt}>🔍 Browse Profiles</Text>
+        </TouchableOpacity>
+
         {/* Candidate — no profile claimed yet */}
         {userData?.role === 'candidate' && !userData?.profile_id && (
           <TouchableOpacity
