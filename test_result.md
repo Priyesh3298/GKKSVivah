@@ -235,6 +235,31 @@ agent_communication:
 
       Backend log: /var/log/supervisor/backend.err.log
       App URL: https://vivah-staging.preview.emergentagent.com
+
+  - agent: "main"
+    message: |
+      Step 6 (Browse Profiles) implementation complete. Testing needed for:
+
+      BROWSE SCREEN:
+      1. Login with any phone number (OTP in backend.err.log)
+      2. Home screen should have '🔍 Browse Profiles' button
+      3. Tap it → navigate to /browse
+      4. Browse screen loads and shows 8 profiles immediately (all pending_approval)
+      5. Each card shows: name, age, city, gender, M/F badge
+      6. Gender filter: tap 'Male' → only 4 males shown; tap 'Female' → only 4 females shown; 'All' → all 8
+      7. City filter: type 'Surat' + tap Search → shows Raj Patel and Kavya Joshi
+      8. Age filter: type 25 in min, 28 in max + tap Search → shows 5 profiles in age range
+      9. Combination filter: Female + City=Surat → shows only Kavya Joshi
+      10. Empty result: type 'Bangalore' → shows 'No profiles found. Try different filters.'
+      11. Back button returns to home screen
+
+      Backend:
+      - GET /api/profiles/browse (no filters) → 8 profiles
+      - GET /api/profiles/browse?gender=Female → 4 profiles
+      - GET /api/profiles/browse?city=Surat → 2 profiles
+      - GET /api/profiles/browse?age_min=25&age_max=28 → 5 profiles
+
+      App URL: https://vivah-staging.preview.emergentagent.com
       1. Register screen: enter phone 9988776655, click security check (web bypass), click 'Send OTP'
       2. OTP screen: OTP is logged to backend stdout as [PLACEHOLDER MSG91] OTP for +91...: XXXXXX.
          Fetch the OTP from backend logs and enter it on OTP screen.
