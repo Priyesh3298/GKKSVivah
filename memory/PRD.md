@@ -56,7 +56,22 @@ interests, shortlist, messages, reports, admin_log
 - [x] Backend .env updated with SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - [ ] SQL migration PENDING manual execution in Supabase SQL Editor
 
-**Action Required**: Run /app/supabase/migrations/complete_migration.sql in Supabase SQL Editor
+### Step 2 — Admin CSV Import Tool (Feb 2026)
+- [x] Backend: `POST /api/admin/csv-preview` — parses CSV, auto-detects all 27 field mappings, returns preview rows
+- [x] Backend: `POST /api/admin/csv-import` — bulk inserts profiles as 'unclaimed', batch of 50, duplicate detection
+- [x] Smart column alias matching (handles: "Full Name", "Date of Birth", "Father's Name", etc.)
+- [x] sub_caste and video_url are NEVER imported (explicitly blocked in COLUMN_ALIASES)
+- [x] Admin auth via X-Admin-Secret header (secret: stored in .env as ADMIN_SECRET)
+- [x] Date parsing: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD and more
+- [x] Value normalization: Manglik (Yes/No/Partial), family_type (Joint/Nuclear), gender, marital_status, relocation, preferred_cities
+- [x] Duplicate detection: exact match on (full_name, dob, father_name) — checks existing DB + intra-CSV
+- [x] Dry-run mode (dry_run=true) for preview without DB writes
+- [x] Frontend: 4-step admin import UI (Select → Map → Preview → Done)
+- [x] Auth gate with admin secret input
+- [x] Column mapping with custom bottom sheet picker (27 profile fields)
+- [x] Saffron/gold theme with step indicator bar
+- [x] Import summary cards (total, imported, duplicates, errors)
+- [x] expo-document-picker 14.0.8 installed (SDK 54 compatible)
 
 ## 📋 Build Order — Status
 
