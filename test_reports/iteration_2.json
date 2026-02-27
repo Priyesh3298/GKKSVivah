@@ -1,0 +1,64 @@
+{
+  "summary": "GKKS Vivah Step 3 Registration Flow — Full E2E testing. All 12 backend auth tests passed. All 11 frontend flows verified via Playwright: register screen loads, language toggle EN/GU, phone input, captcha bypass, Send OTP, OTP screen, 6-cell OTP input, OTP verification with real OTP from backend log, home screen redirect, and Sign Out. MSG91 is MOCKED and Turnstile uses WEB_BYPASS on web.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "N/A",
+        "issue": "hmac.new() is deprecated in Python 3.x — should use hmac.new() which is actually correct, but consider using hmac.new() alias. Actually hmac.new() is valid Python — no real issue."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "RegisterScreen - CaptchaDone text",
+        "issue": "Double checkmark in captcha done state: shows '✓ Security check passed ✓' because code prepends '✓ ' AND i18n captchaDone string itself ends with '✓'. Should remove the trailing ✓ from the i18n string or from the code prefix.",
+        "testID": "N/A",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "RegisterScreen",
+        "issues": [
+          "Captcha bypass button '(tap to verify)' is hardcoded English — shows in GU mode as 'સુરક્ષા ચકાસણી પૂર્ણ કરો (tap to verify)'. Consider adding an i18n key for this."
+        ]
+      }
+    ],
+    "react_native_issues": [
+      {
+        "component": "All interactive elements",
+        "issue": "No testID props on buttons (Send OTP, Verify & Continue, Sign Out, language toggle, captcha bypass) or TextInputs. Makes automated testing rely on text content selectors only."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth.py",
+    "/app/test_reports/pytest/pytest_auth_results.xml"
+  ],
+  "action_items": [
+    "LOW: Fix double checkmark in captcha done text (captchaDone i18n string already has ✓, code also prepends '✓ ')",
+    "LOW: Add i18n key for '(tap to verify)' in captcha bypass button for full Gujarati support",
+    "LOW: Add testID props to interactive elements (Send OTP button, phone input, verify button, sign out button) for robust automated testing"
+  ],
+  "critical_code_review_comments": [
+    "server.py line 320: hmac.new() is Python's standard hmac API — works correctly. No issue.",
+    "OTP_STORE is in-memory dict — will reset on server restart. Acceptable for placeholder stage but note: if backend restarts, all pending OTPs are lost.",
+    "derive_supabase_password uses SERVER_OTP_SECRET from env with fallback 'gkks-otp-secret-2026' — ensure this default secret is changed in production.",
+    "No testID attributes on any interactive elements in register.tsx, otp.tsx, or index.tsx — add them for testability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12)",
+    "frontend": "100% — all 11 flows verified end-to-end"
+  },
+  "seed_data_creation": "Two test Supabase users created: +919988776655 and +919900001122 via verify-otp flow",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Step 3 Registration Flow fully verified. Backend auth (send-otp, verify-otp, Supabase JWT session) all working. MSG91 is MOCKED (OTP logged to backend.err.log). Turnstile uses WEB_BYPASS on web. Rate limit is 60s per phone — use unique phone numbers when testing. OTP flow: grep 'PLACEHOLDER MSG91' /var/log/supervisor/backend.err.log | tail -1 to get latest OTP.",
+  "rca_of_issue": "N/A — no critical issues found"
+}
