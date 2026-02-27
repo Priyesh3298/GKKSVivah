@@ -574,6 +574,61 @@ def claim_profile(body: ClaimProfileRequest, user: dict = Depends(get_current_us
     }
 
 
+# ─── GET /api/profiles/browse ─────────────────────────────────
+@api_router.get("/profiles/browse")
+def browse_profiles(
+    gender: str = "",
+    city: str = "",
+    age_min: int = 0,
+    age_max: int = 0,
+    page: int = 1,
+    limit: int = 20,
+    user: dict = Depends(get_current_user),
+):
+    from datetime import date as _date
+
+    today = _date.today()
+
+    query = (
+        supabase_admin.table("profiles")
+        .select("id, full_name, dob, city, gender, status")
+        .in_("status", ["pending_approval", "claimed"])
+    )
+
+    if gender in ("Male", "Female"):
+        query = query.eq("gender", gender)
+
+    if city.strip():
+        query = query.ilike("city", f"%{city.strip()}%")
+
+    if age_min > 0:
+        try:
+            max_dob = today.replace(year=today.year - age_min)
+        except ValueError:
+            max_dob = today.replace(year=today.year - age_min, day=28)
+        query = query.lte("dob", max_dob.isoformat())
+
+    if age_max > 0:
+        try:
+            min_dob = today.replace(year=today.year - age_max - 1)
+        except ValueError:
+            min_dob = today.replace(year=today.year - age_max - 1, day=28)
+        query = query.gte("dob", min_dob.isoformat())
+
+    offset = (page - 1) * limit
+    result = query.order("full_name").range(offset, offset + limit - 1).execute()
+
+    profiles = []
+    for p in result.data:
+        age = None
+        if p.get("dob"):
+            dob = _date.fromisoformat(p["dob"])
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        profiles.append({**p, "age": age})
+
+    return {"profiles": profiles, "page": page, "total": len(profiles)}
+
+
 # ─── Existing Routes ─────────────────────────────────────────
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
