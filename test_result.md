@@ -203,7 +203,38 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: |
-      Step 3 implementation complete. Testing needed for:
+      Steps 4 and 5 implementation complete. Testing needed for:
+
+      STEP 4 — ROLE SELECTION:
+      1. Register with a NEW phone number (e.g. 9876500000)
+      2. After OTP verify, should auto-navigate to /(onboarding)/role-select
+      3. Screen shows "I am a Candidate" and "I am a Parent" cards
+      4. Tap "I am a Candidate" → should navigate to /(onboarding)/claim-profile
+      5. (Optional) Tap "I am a Parent" → should navigate to home screen
+
+      STEP 5 — PROFILE CLAIMING:
+      6. On claim-profile screen, type "patel" or "shah" in search
+      7. After 400ms debounce, results appear (Raj Patel, Priya Shah, etc.)
+         NOTE: Raj Patel is already claimed (pending_approval), Priya Shah and Meera Desai are available
+      8. Tap "This is me" on an available profile (Priya Shah or Meera Desai)
+      9. Navigate to claim-selfie screen showing profile name
+      10. On web: tap selfie box → file picker opens (browser native)
+          On mobile: tap selfie box → front camera opens
+      11. Select/take photo, preview appears
+      12. Tap "Submit Claim" → should succeed and navigate to home
+      13. Home screen shows "Profile claim under admin review" badge
+
+      DB VERIFICATION (backend test):
+      - profiles table: claimed profile should be status='pending_approval'
+      - users table: user should have profile_id set
+      - admin_log table: should have profile_claim_submitted event
+
+      Test data:
+      - Available profiles: Priya Shah (Ahmedabad), Meera Desai (Vadodara)
+      - Already claimed: Raj Patel (Surat) — should show 409 error if selected
+
+      Backend log: /var/log/supervisor/backend.err.log
+      App URL: https://vivah-staging.preview.emergentagent.com
       1. Register screen: enter phone 9988776655, click security check (web bypass), click 'Send OTP'
       2. OTP screen: OTP is logged to backend stdout as [PLACEHOLDER MSG91] OTP for +91...: XXXXXX.
          Fetch the OTP from backend logs and enter it on OTP screen.
