@@ -21,6 +21,24 @@ export default function Index() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Role check: if authenticated but no role set, redirect to role selection
+  useEffect(() => {
+    if (!session || loading) return;
+    const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL as string;
+    fetch(`${BACKEND_URL}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.role) {
+          router.replace('/(onboarding)/role-select');
+        } else if (data.role === 'candidate' && !data.profile_id) {
+          // candidate hasn't claimed yet — show home with prompt (handled in home screen)
+        }
+      })
+      .catch(() => {});
+  }, [session, loading]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>

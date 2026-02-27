@@ -75,7 +75,12 @@ export default function OtpScreen() {
         refresh_token: body.refresh_token,
       });
 
-      router.replace('/');
+      // New users → role selection; returning users → home
+      if (body.is_new_user) {
+        router.replace('/(onboarding)/role-select');
+      } else {
+        router.replace('/');
+      }
     } catch (err: any) {
       setError(err.message || 'Something went wrong.');
     } finally {
