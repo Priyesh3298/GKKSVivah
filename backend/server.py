@@ -667,6 +667,122 @@ def get_profile_detail(
         raise HTTPException(status_code=500, detail="Failed to fetch profile")
 
 
+# ─── GET /api/shortlist ────────────────────────────────────────
+@api_router.get("/shortlist")
+def get_shortlist(user: dict = Depends(get_current_user)):
+    from datetime import date as _date
+    
+    try:
+        # Fetch shortlisted profile IDs for the user
+        shortlist_result = supabase_admin.table("shortlist") \
+            .select("profile_id, created_at") \
+            .eq("user_id", user["id"]) \
+            .order("created_at", desc=True) \
+            .execute()
+        
+        if not shortlist_result.data:
+            return {"profiles": []}
+        
+        profile_ids = [item["profile_id"] for item in shortlist_result.data]
+        
+        # Fetch profile details
+        profiles_result = supabase_admin.table("profiles") \
+            .select("id, full_name, dob, city, gender, education, profession, photos") \
+            .in_("id", profile_ids) \
+            .in_("status", ["pending_approval", "claimed"]) \
+            .execute()
+        
+        # Calculate age for each profile
+        today = _date.today()
+        profiles = []
+        for p in profiles_result.data:
+            age = None
+            if p.get("dob"):
+                dob = _date.fromisoformat(p["dob"])
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            profiles.append({**p, "age": age})
+        
+        return {"profiles": profiles}
+        
+    except Exception as e:
+        logger.error(f"get_shortlist error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch shortlist")
+
+
+# ─── POST /api/shortlist/{profile_id} ──────────────────────────
+@api_router.post("/shortlist/{profile_id}")
+def add_to_shortlist(profile_id: str, user: dict = Depends(get_current_user)):
+    try:
+        # Check if profile exists and is claimable
+        profile_check = supabase_admin.table("profiles") \
+            .select("id") \
+            .eq("id", profile_id) \
+            .in_("status", ["pending_approval", "claimed"]) \
+            .execute()
+        
+        if not profile_check.data:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        # Check if already shortlisted
+        existing = supabase_admin.table("shortlist") \
+            .select("id") \
+            .eq("user_id", user["id"]) \
+            .eq("profile_id", profile_id) \
+            .execute()
+        
+        if existing.data:
+            return {"success": True, "message": "Profile already in shortlist"}
+        
+        # Add to shortlist
+        supabase_admin.table("shortlist").insert({
+            "user_id": user["id"],
+            "profile_id": profile_id,
+        }).execute()
+        
+        return {"success": True, "message": "Profile added to shortlist"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"add_to_shortlist error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add to shortlist")
+
+
+# ─── DELETE /api/shortlist/{profile_id} ────────────────────────
+@api_router.delete("/shortlist/{profile_id}")
+def remove_from_shortlist(profile_id: str, user: dict = Depends(get_current_user)):
+    try:
+        # Delete from shortlist
+        result = supabase_admin.table("shortlist") \
+            .delete() \
+            .eq("user_id", user["id"]) \
+            .eq("profile_id", profile_id) \
+            .execute()
+        
+        return {"success": True, "message": "Profile removed from shortlist"}
+        
+    except Exception as e:
+        logger.error(f"remove_from_shortlist error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to remove from shortlist")
+
+
+# ─── GET /api/shortlist/check/{profile_id} ─────────────────────
+@api_router.get("/shortlist/check/{profile_id}")
+def check_shortlist(profile_id: str, user: dict = Depends(get_current_user)):
+    try:
+        result = supabase_admin.table("shortlist") \
+            .select("id") \
+            .eq("user_id", user["id"]) \
+            .eq("profile_id", profile_id) \
+            .execute()
+        
+        return {"is_shortlisted": len(result.data) > 0}
+        
+    except Exception as e:
+        logger.error(f"check_shortlist error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check shortlist")
+
+
 # ─── Existing Routes ─────────────────────────────────────────
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
