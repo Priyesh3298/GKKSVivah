@@ -129,6 +129,15 @@ export default function ProfileDetailScreen() {
           <Text style={styles.backTxt}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile Details</Text>
+        <TouchableOpacity
+          onPress={toggleShortlist}
+          disabled={shortlistLoading}
+          style={styles.heartBtn}
+        >
+          <Text style={styles.heartIcon}>
+            {shortlistLoading ? '⏳' : isShortlisted ? '❤️' : '🤍'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
