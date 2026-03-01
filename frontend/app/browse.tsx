@@ -234,6 +234,7 @@ const styles = StyleSheet.create({
   badgeMale: { backgroundColor: '#DBEAFE' },
   badgeFemale: { backgroundColor: '#FCE7F3' },
   badgeTxt: { fontSize: 12, fontWeight: '800', color: '#1C1917' },
+  chevron: { fontSize: 20, color: '#92400E', fontWeight: '700', marginLeft: 4 },
 
   emptyTxt: { fontSize: 14, color: '#A8A29E', textAlign: 'center', marginTop: 40 },
   countTxt: {
