@@ -629,6 +629,44 @@ def browse_profiles(
     return {"profiles": profiles, "page": page, "total": len(profiles)}
 
 
+# ─── GET /api/profiles/:id ────────────────────────────────────
+@api_router.get("/profiles/{profile_id}")
+def get_profile_detail(
+    profile_id: str,
+    user: dict = Depends(get_current_user),
+):
+    from datetime import date as _date
+    
+    try:
+        result = supabase_admin.table("profiles") \
+            .select("*") \
+            .eq("id", profile_id) \
+            .in_("status", ["pending_approval", "claimed"]) \
+            .single() \
+            .execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        profile = result.data
+        
+        # Calculate age from dob
+        age = None
+        if profile.get("dob"):
+            today = _date.today()
+            dob = _date.fromisoformat(profile["dob"])
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        
+        # Return profile with age
+        return {**profile, "age": age}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"get_profile_detail error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch profile")
+
+
 # ─── Existing Routes ─────────────────────────────────────────
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
