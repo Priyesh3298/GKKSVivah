@@ -76,6 +76,14 @@ export default function Index() {
           <Text style={styles.actionBtnTxt}>🔍 Browse Profiles</Text>
         </TouchableOpacity>
 
+        {/* Shortlist */}
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: '#B91C1C', marginBottom: 10 }]}
+          onPress={() => router.push('/shortlist')}
+        >
+          <Text style={styles.actionBtnTxt}>❤️ My Shortlist</Text>
+        </TouchableOpacity>
+
         {/* Candidate — no profile claimed yet */}
         {userData?.role === 'candidate' && !userData?.profile_id && (
           <TouchableOpacity
