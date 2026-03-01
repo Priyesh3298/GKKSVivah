@@ -29,9 +29,12 @@ export default function ProfileDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sendingInterest, setSendingInterest] = useState(false);
+  const [isShortlisted, setIsShortlisted] = useState(false);
+  const [shortlistLoading, setShortlistLoading] = useState(false);
 
   useEffect(() => {
     fetchProfile();
+    checkShortlist();
   }, [id]);
 
   const fetchProfile = async () => {
@@ -49,6 +52,40 @@ export default function ProfileDetailScreen() {
       setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkShortlist = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${BACKEND_URL}/api/shortlist/check/${id}`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsShortlisted(data.is_shortlisted);
+      }
+    } catch (err) {
+      // Silent fail for shortlist check
+    }
+  };
+
+  const toggleShortlist = async () => {
+    setShortlistLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const method = isShortlisted ? 'DELETE' : 'POST';
+      const res = await fetch(`${BACKEND_URL}/api/shortlist/${id}`, {
+        method,
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      if (res.ok) {
+        setIsShortlisted(!isShortlisted);
+      }
+    } catch (err) {
+      alert('Failed to update shortlist');
+    } finally {
+      setShortlistLoading(false);
     }
   };
 
