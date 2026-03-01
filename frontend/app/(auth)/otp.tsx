@@ -127,7 +127,7 @@ export default function OtpScreen() {
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.om}>🕉</Text>
+          <Text style={styles.logo}>Shree GKKS Vivah</Text>
           <Text style={styles.title}>{t('otpTitle', lang)}</Text>
           <Text style={styles.subtitle}>{t('otpSentTo', lang)}</Text>
           <Text style={styles.phone}>{maskedPhone}</Text>
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   backTxt: { fontSize: 14, color: '#92400E', fontWeight: '600' },
 
   body: { flex: 1, paddingHorizontal: 28, paddingTop: 20, alignItems: 'center' },
-  om: { fontSize: 38, marginBottom: 8 },
+  logo: { fontSize: 28, fontWeight: '800', color: '#92400E', marginBottom: 8, textAlign: 'center' },
   title: { fontSize: 26, fontWeight: '800', color: '#1C1917', marginBottom: 10 },
   subtitle: { fontSize: 14, color: '#78716C', textAlign: 'center' },
   phone: { fontSize: 17, fontWeight: '700', color: '#92400E', marginTop: 4, letterSpacing: 0.5 },
