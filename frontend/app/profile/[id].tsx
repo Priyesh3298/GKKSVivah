@@ -260,7 +260,9 @@ const styles = StyleSheet.create({
   },
   backBtn: { paddingVertical: 6 },
   backTxt: { fontSize: 14, color: '#92400E', fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1C1917' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1C1917', flex: 1 },
+  heartBtn: { paddingVertical: 6, paddingHorizontal: 8 },
+  heartIcon: { fontSize: 24 },
 
   scroll: { flex: 1 },
 
