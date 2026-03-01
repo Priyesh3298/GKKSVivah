@@ -68,7 +68,7 @@ export default function RoleSelectScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.om}>🕉</Text>
+        <Text style={styles.logo}>Shree GKKS Vivah</Text>
         <Text style={styles.title}>
           {lang === 'gu' ? 'તમારી ભૂમિકા પસંદ કરો' : 'How are you joining?'}
         </Text>
@@ -108,7 +108,7 @@ export default function RoleSelectScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFBEB' },
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 48, alignItems: 'center' },
-  om: { fontSize: 40, marginBottom: 12 },
+  logo: { fontSize: 28, fontWeight: '800', color: '#92400E', marginBottom: 12, textAlign: 'center' },
   title: { fontSize: 22, fontWeight: '800', color: '#1C1917', textAlign: 'center', marginBottom: 6 },
   subtitle: { fontSize: 13, color: '#78716C', textAlign: 'center', marginBottom: 36 },
   card: {
