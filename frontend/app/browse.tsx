@@ -135,7 +135,11 @@ export default function BrowseScreen() {
             ) : null
           }
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push(`/profile/${item.id}`)}
+              activeOpacity={0.7}
+            >
               <View style={styles.avatar}>
                 <Text style={styles.avatarTxt}>
                   {item.gender === 'Male' ? '👦' : '👧'}
@@ -155,7 +159,8 @@ export default function BrowseScreen() {
               ]}>
                 <Text style={styles.badgeTxt}>{item.gender === 'Male' ? 'M' : 'F'}</Text>
               </View>
-            </View>
+              <Text style={styles.chevron}>›</Text>
+            </TouchableOpacity>
           )}
         />
       )}
