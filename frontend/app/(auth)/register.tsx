@@ -138,8 +138,7 @@ export default function RegisterScreen() {
 
           {/* Hero */}
           <View style={styles.hero}>
-            <Text style={styles.om}>🕉</Text>
-            <Text style={styles.title}>{t('appName', lang)}</Text>
+            <Text style={styles.logo}>Shree GKKS Vivah</Text>
             <Text style={styles.subtitle}>{t('appSubtitle', lang)}</Text>
             <View style={styles.badge}>
               <Text style={styles.badgeTxt}>🔒 {t('inviteOnly', lang)}</Text>
@@ -252,8 +251,7 @@ const styles = StyleSheet.create({
   langTxtActive: { color: '#FFFBEB' },
 
   hero: { alignItems: 'center', marginTop: 12, marginBottom: 28 },
-  om: { fontSize: 44, marginBottom: 6 },
-  title: { fontSize: 28, fontWeight: '800', color: '#1C1917', letterSpacing: 0.3 },
+  logo: { fontSize: 32, fontWeight: '800', color: '#92400E', marginBottom: 6, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#78716C', marginTop: 4 },
   badge: {
     marginTop: 10, backgroundColor: '#FEF3C7',
