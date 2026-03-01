@@ -51,7 +51,7 @@ export default function Index() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Text style={styles.om}>🕉</Text>
+          <Text style={styles.logo}>Shree GKKS Vivah</Text>
           <ActivityIndicator color="#92400E" style={{ marginTop: 16 }} />
         </View>
       </SafeAreaView>
@@ -65,8 +65,8 @@ export default function Index() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.title}>🕉 GKKS Vivah</Text>
-        <Text style={styles.subtitle}>ગુજરાતી સમુદાય મૅટ્રિમૉનિઅલ</Text>
+        <Text style={styles.title}>Shree GKKS Vivah</Text>
+        <Text style={styles.subtitle}>Gujarati Community Matrimonial</Text>
 
         {/* Browse Profiles */}
         <TouchableOpacity
@@ -124,7 +124,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFBEB' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  om: { fontSize: 48 },
+  logo: { fontSize: 28, fontWeight: '800', color: '#92400E', textAlign: 'center' },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   title: { fontSize: 32, fontWeight: '800', color: '#1C1917', marginBottom: 6 },
   subtitle: { fontSize: 16, color: '#78716C', marginBottom: 32 },
